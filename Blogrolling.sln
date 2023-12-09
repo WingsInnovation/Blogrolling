@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Blogrolling", "Blogrolling\Blogrolling.csproj", "{7FE10C92-E822-4358-8EC4-265E82CBE851}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Blogrolling.Data.RSS", "Data\Blogrolling.Data.RSS\Blogrolling.Data.RSS.csproj", "{F2F54AA3-9E9B-4BF9-8371-D60E80159666}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7FE10C92-E822-4358-8EC4-265E82CBE851}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7FE10C92-E822-4358-8EC4-265E82CBE851}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7FE10C92-E822-4358-8EC4-265E82CBE851}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7FE10C92-E822-4358-8EC4-265E82CBE851}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F2F54AA3-9E9B-4BF9-8371-D60E80159666}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F2F54AA3-9E9B-4BF9-8371-D60E80159666}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F2F54AA3-9E9B-4BF9-8371-D60E80159666}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F2F54AA3-9E9B-4BF9-8371-D60E80159666}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
