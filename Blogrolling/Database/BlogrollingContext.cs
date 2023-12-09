@@ -10,6 +10,18 @@ public class BlogrollingContext(DbContextOptions<BlogrollingContext> options) : 
 
         builder.Entity<Blog>()
             .Property(b => b.Status)
+            .HasDefaultValue(Blog.BlogStatus.Ok);
+
+        builder.Entity<Blog>()
+            .Property(b => b.FeedPrevUpdate)
+            .HasDefaultValue(0);
+
+        builder.Entity<Blog>()
+            .Property(b => b.FeedNextUpdate)
+            .HasDefaultValue(0);
+            
+        builder.Entity<Blog>()
+            .Property(b => b.Status)
             .HasConversion(p => p.ToString(), 
                 p => Enum.Parse<Blog.BlogStatus>(p));
 

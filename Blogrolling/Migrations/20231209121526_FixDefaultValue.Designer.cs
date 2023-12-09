@@ -2,6 +2,7 @@
 using Blogrolling.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -9,9 +10,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Blogrolling.Migrations
 {
     [DbContext(typeof(BlogrollingContext))]
-    partial class BlogrollingContextModelSnapshot : ModelSnapshot
+    [Migration("20231209121526_FixDefaultValue")]
+    partial class FixDefaultValue
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

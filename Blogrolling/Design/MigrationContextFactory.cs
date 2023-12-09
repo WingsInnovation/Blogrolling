@@ -14,7 +14,7 @@ public class MigrationContextFactory : IDesignTimeDbContextFactory<BlogrollingCo
         }
         
         var optionsBuilder = new DbContextOptionsBuilder<BlogrollingContext>();
-        optionsBuilder.UseMySql(ServerVersion.AutoDetect(args[0]));
+        optionsBuilder.UseMySql(args[0], ServerVersion.AutoDetect(args[0]));
         return new BlogrollingContext(optionsBuilder.Options);
     }
 }

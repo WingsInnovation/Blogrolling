@@ -26,7 +26,7 @@ public class Blog
     [Required]
     [Comment("博客链接")]
     public string Link { get; set; }
-    
+
     [Required]
     [Comment("博客状态")]
     public BlogStatus Status { get; set; }

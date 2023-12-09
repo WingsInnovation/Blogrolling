@@ -17,4 +17,3 @@ dotnet ef migrations add <迁移名> -- "<MySQL 链接字符串>"
 ```shell
 dotnet ef database update -- "<MySQL 链接字符串>"
 ```
-
