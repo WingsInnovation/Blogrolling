@@ -10,8 +10,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Blogrolling.Migrations
 {
     [DbContext(typeof(BlogrollingContext))]
-    [Migration("20231209121526_FixDefaultValue")]
-    partial class FixDefaultValue
+    [Migration("20231220142108_SplitDataSourceFromBlog")]
+    partial class SplitDataSourceFromBlog
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -36,23 +36,6 @@ namespace Blogrolling.Migrations
                         .HasColumnType("longtext")
                         .HasComment("博客简介");
 
-                    b.Property<string>("Feed")
-                        .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasComment("Feed");
-
-                    b.Property<long>("FeedNextUpdate")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasDefaultValue(0L)
-                        .HasComment("下次Feed更新时间");
-
-                    b.Property<long>("FeedPrevUpdate")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasDefaultValue(0L)
-                        .HasComment("上次Feed更新时间");
-
                     b.Property<string>("Guid")
                         .IsRequired()
                         .HasColumnType("longtext")
@@ -68,17 +51,18 @@ namespace Blogrolling.Migrations
                         .HasColumnType("longtext")
                         .HasComment("博客名称");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("longtext")
-                        .HasComment("博客状态");
+                    b.Property<int>("SourceId")
+                        .HasColumnType("int")
+                        .HasComment("数据源ID");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Blog", t =>
+                    b.HasIndex("SourceId")
+                        .IsUnique();
+
+                    b.ToTable("Blogs", t =>
                         {
-                            t.HasComment("博客数据源");
+                            t.HasComment("博客");
                         });
                 });
 
@@ -103,6 +87,11 @@ namespace Blogrolling.Migrations
                         .HasColumnType("varchar(255)")
                         .HasComment("文章GUID");
 
+                    b.Property<string>("Link")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasComment("链接");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("longtext")
@@ -115,7 +104,7 @@ namespace Blogrolling.Migrations
                     b.HasIndex("Guid")
                         .IsUnique();
 
-                    b.ToTable("Post", t =>
+                    b.ToTable("Posts", t =>
                         {
                             t.HasComment("博客文章");
                         });
@@ -141,6 +130,40 @@ namespace Blogrolling.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Blogrolling.Database.Sources.DataSource", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasComment("源ID");
+
+                    b.Property<string>("Link")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasComment("链接");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasComment("数据源状态");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasComment("数据源类型");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DataSources", t =>
+                        {
+                            t.HasComment("数据源");
+                        });
+
+                    b.HasDiscriminator<string>("Type").IsComplete(false).HasValue("Manual");
+
+                    b.UseTphMappingStrategy();
+                });
+
             modelBuilder.Entity("Blogrolling.Database.Tag", b =>
                 {
                     b.Property<int>("Id")
@@ -157,10 +180,47 @@ namespace Blogrolling.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Tag", t =>
+                    b.ToTable("Tags", t =>
                         {
                             t.HasComment("标签");
                         });
+                });
+
+            modelBuilder.Entity("Blogrolling.Database.Sources.RSSDataSource", b =>
+                {
+                    b.HasBaseType("Blogrolling.Database.Sources.DataSource");
+
+                    b.Property<string>("NextUpdateTime")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasComment("下次Feed更新时间");
+
+                    b.Property<string>("PrevUpdateTime")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasComment("上次Feed更新时间");
+
+                    b.Property<long>("UpdateFrequency")
+                        .HasColumnType("bigint")
+                        .HasComment("更新频率");
+
+                    b.ToTable(t =>
+                        {
+                            t.HasComment("数据源");
+                        });
+
+                    b.HasDiscriminator().HasValue("RSS");
+                });
+
+            modelBuilder.Entity("Blogrolling.Database.Blog", b =>
+                {
+                    b.HasOne("Blogrolling.Database.Sources.DataSource", "Source")
+                        .WithOne("Blog")
+                        .HasForeignKey("Blogrolling.Database.Blog", "SourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Source");
                 });
 
             modelBuilder.Entity("Blogrolling.Database.Post", b =>
@@ -201,6 +261,12 @@ namespace Blogrolling.Migrations
             modelBuilder.Entity("Blogrolling.Database.Post", b =>
                 {
                     b.Navigation("PostTags");
+                });
+
+            modelBuilder.Entity("Blogrolling.Database.Sources.DataSource", b =>
+                {
+                    b.Navigation("Blog")
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Blogrolling.Database.Tag", b =>

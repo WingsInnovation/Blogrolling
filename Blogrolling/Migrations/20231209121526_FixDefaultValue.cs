@@ -15,7 +15,6 @@ namespace Blogrolling.Migrations
                 table: "Blog",
                 type: "longtext",
                 nullable: false,
-                defaultValue: "Ok",
                 comment: "博客状态",
                 oldClrType: typeof(string),
                 oldType: "longtext",

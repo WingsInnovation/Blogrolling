@@ -22,6 +22,10 @@ public class Post
     public string Description { get; set; }
     
     [Required]
+    [Comment("链接")]
+    public string Link { get; set; }
+    
+    [Required]
     [Comment("文章GUID")]
     public string Guid { get; set; }
 
