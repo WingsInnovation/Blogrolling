@@ -2,6 +2,7 @@
 using Blogrolling.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -9,9 +10,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Blogrolling.Migrations
 {
     [DbContext(typeof(BlogrollingContext))]
-    partial class BlogrollingContextModelSnapshot : ModelSnapshot
+    [Migration("20231221135521_DoNotUseTimeSpan")]
+    partial class DoNotUseTimeSpan
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -35,7 +38,7 @@ namespace Blogrolling.Migrations
 
                     b.Property<string>("Guid")
                         .IsRequired()
-                        .HasColumnType("varchar(255)")
+                        .HasColumnType("longtext")
                         .HasComment("博客标志");
 
                     b.Property<string>("Link")
@@ -54,13 +57,10 @@ namespace Blogrolling.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Guid")
-                        .IsUnique();
-
                     b.HasIndex("SourceId")
                         .IsUnique();
 
-                    b.ToTable("Blogs", null, t =>
+                    b.ToTable("Blogs", t =>
                         {
                             t.HasComment("博客");
                         });
@@ -72,10 +72,6 @@ namespace Blogrolling.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasComment("文章ID");
-
-                    b.Property<string>("Author")
-                        .HasColumnType("longtext")
-                        .HasComment("文章作者");
 
                     b.Property<int>("BlogId")
                         .HasColumnType("int")
@@ -108,7 +104,7 @@ namespace Blogrolling.Migrations
                     b.HasIndex("Guid")
                         .IsUnique();
 
-                    b.ToTable("Posts", null, t =>
+                    b.ToTable("Posts", t =>
                         {
                             t.HasComment("博客文章");
                         });
@@ -128,7 +124,7 @@ namespace Blogrolling.Migrations
 
                     b.HasIndex("TagId");
 
-                    b.ToTable("PostTag", null, t =>
+                    b.ToTable("PostTag", t =>
                         {
                             t.HasComment("文章标签");
                         });
@@ -158,7 +154,7 @@ namespace Blogrolling.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("DataSources", null, t =>
+                    b.ToTable("DataSources", t =>
                         {
                             t.HasComment("数据源");
                         });
@@ -184,7 +180,7 @@ namespace Blogrolling.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Tags", null, t =>
+                    b.ToTable("Tags", t =>
                         {
                             t.HasComment("标签");
                         });

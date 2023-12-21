@@ -31,15 +31,10 @@ public class BlogrollingContext(DbContextOptions<BlogrollingContext> options) : 
             .WithOne(p => p.Blog)
             .HasForeignKey(p => p.BlogId);
 
-        builder.Entity<PostTag>()
-            .HasOne(p => p.Post)
-            .WithMany(p => p.PostTags)
-            .HasForeignKey(p => p.PostId);
-
-        builder.Entity<PostTag>()
-            .HasOne(p => p.Tag)
-            .WithMany(t => t.PostTags)
-            .HasForeignKey(p => p.TagId);
+        builder.Entity<Post>()
+            .HasMany(p => p.Tags)
+            .WithMany(t => t.Posts)
+            .UsingEntity<PostTag>();
 
         builder.Entity<DataSource>()
             .HasDiscriminator(d => d.Type)
@@ -61,7 +56,7 @@ public class BlogrollingContext(DbContextOptions<BlogrollingContext> options) : 
         
         builder.Entity<RSSDataSource>()
             .Property(d => d.UpdateFrequency)
-            .HasConversion(new TimeSpanToSecondsConverter());
+            .HasConversion(new DateTimeToISO8601Converter());
         
         builder.Entity<RSSDataSource>()
             .Property(d => d.PrevFetchTime)

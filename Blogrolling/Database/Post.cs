@@ -19,7 +19,10 @@ public class Post
     
     [Required]
     [Comment("文章介绍")]
-    public string Description { get; set; }
+    public string? Description { get; set; }
+    
+    [Comment("文章作者")]
+    public string? Author { get; set; }
     
     [Required]
     [Comment("链接")]
@@ -37,7 +40,7 @@ public class Post
     
     public virtual Blog Blog { get; set; }
     
-    public virtual IEnumerable<PostTag> PostTags { get; set; }
+    public virtual IEnumerable<Tag> Tags { get; set; }
 
     #endregion
 }

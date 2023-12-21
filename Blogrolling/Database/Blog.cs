@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Blogrolling.Database;
 
+[Index(nameof(Guid), IsUnique = true)]
 [Comment("博客")]
 public class Blog
 {
@@ -36,9 +37,9 @@ public class Blog
     
     [Required]
     [Comment("数据源ID")]
-    public int SourceId { get; set; }
+    public int? SourceId { get; set; }
     
-    public virtual DataSource Source { get; set; }
+    public virtual DataSource? Source { get; set; }
     
     public virtual IEnumerable<Post> Posts { get; set; }
 

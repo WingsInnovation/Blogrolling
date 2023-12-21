@@ -9,5 +9,6 @@ public class TimeSpanToSecondsConverter(
 {
     private static readonly Expression<Func<TimeSpan?, long?>> AsSeconds = time => time != null ? time.Value.Seconds : null;
 
-    private static readonly Expression<Func<long?, TimeSpan?>> FromSeconds = seconds => seconds != null ? TimeSpan.FromSeconds(seconds.Value) : null;
+    private static readonly Expression<Func<long?, TimeSpan?>> FromSeconds = seconds => 
+        seconds != null ? TimeSpan.FromSeconds(seconds.Value) : null;
 }

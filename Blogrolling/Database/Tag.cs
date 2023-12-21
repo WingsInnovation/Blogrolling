@@ -16,5 +16,5 @@ public class Tag
     [Required]
     public string Name { get; set; }
     
-    public virtual IEnumerable<PostTag> PostTags { get; set; }
+    public virtual IEnumerable<Post> Posts { get; set; }
 }

@@ -2,6 +2,9 @@
 
 public class FeedAdditionalInfo
 {
-    public TimeSpan SyUpdateFrequency { get; set; }
-    public DateTime NextFetchTime { get; set; }
+    // public string? Guid { get; set; }
+    public string Link { get; set; }
+
+    public DateTime? SyUpdateFrequency { get; set; }
+    public DateTime NextFetchTime { get; set; } = DateTime.Now.AddHours(1);
 }
