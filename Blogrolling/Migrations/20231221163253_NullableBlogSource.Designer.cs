@@ -3,6 +3,7 @@ using System;
 using Blogrolling.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Blogrolling.Migrations
 {
     [DbContext(typeof(BlogrollingContext))]
-    partial class BlogrollingContextModelSnapshot : ModelSnapshot
+    [Migration("20231221163253_NullableBlogSource")]
+    partial class NullableBlogSource
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -50,6 +53,7 @@ namespace Blogrolling.Migrations
                         .HasComment("博客名称");
 
                     b.Property<int?>("SourceId")
+                        .IsRequired()
                         .HasColumnType("int")
                         .HasComment("数据源ID");
 
@@ -83,6 +87,7 @@ namespace Blogrolling.Migrations
                         .HasComment("博客ID");
 
                     b.Property<string>("Description")
+                        .IsRequired()
                         .HasColumnType("longtext")
                         .HasComment("文章介绍");
 
@@ -222,7 +227,9 @@ namespace Blogrolling.Migrations
                 {
                     b.HasOne("Blogrolling.Database.Sources.DataSource", "Source")
                         .WithOne("Blog")
-                        .HasForeignKey("Blogrolling.Database.Blog", "SourceId");
+                        .HasForeignKey("Blogrolling.Database.Blog", "SourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Source");
                 });

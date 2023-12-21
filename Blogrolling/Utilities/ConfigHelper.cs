@@ -7,7 +7,7 @@ public static class ConfigHelper
         var userHome = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         if (Directory.Exists(userHome))
         {
-            var file = Path.Combine(userHome, ".config", "blogrolling", "connectionString");
+            var file = Path.Combine(userHome, ".config", "blogrolling", "ConnectionString");
             return File.ReadAllText(file);
         }
 

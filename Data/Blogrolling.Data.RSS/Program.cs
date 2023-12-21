@@ -8,61 +8,65 @@ using Microsoft.EntityFrameworkCore;
 
 var rootCommand = new RootCommand("RSS DataSource for Blogrolling.");
 
-var linkArgument = new Argument<string>("link", "A RSS feed link.");
-
+var addLinkArgument = new Argument<string>("link", "A RSS feed link.");
 var addCommand = new Command("add", "Add a RSS feed link to database.");
-addCommand.AddArgument(linkArgument);
+addCommand.AddArgument(addLinkArgument);
 
+var removeLinkArgument = new Argument<string>("source", "A feed link or name.");
 var removeCommand = new Command("remove", "Remove a RSS feed link to database.");
-removeCommand.AddArgument(linkArgument);
+removeCommand.AddArgument(removeLinkArgument);
 
 var forceRefreshOption = new Option<bool>("--force", "Force refresh.");
+var linkOption = new Option<string>("--source", "Specify a feed link or name.");
 var refreshCommand = new Command("refresh", "Refresh RSS information.");
-refreshCommand.AddArgument(linkArgument);
+refreshCommand.AddOption(linkOption);
 refreshCommand.AddOption(forceRefreshOption);
 
 var now = DateTime.Now;
-var db = GetContext();
 
-addCommand.SetHandler(AddLink, linkArgument);
-removeCommand.SetHandler(RemoveLink, linkArgument);
-refreshCommand.SetHandler(Refresh, linkArgument, forceRefreshOption);
+addCommand.SetHandler(AddLink, addLinkArgument);
+removeCommand.SetHandler(RemoveLink, removeLinkArgument);
+refreshCommand.SetHandler(Refresh, linkOption, forceRefreshOption);
 
 rootCommand.AddCommand(addCommand);
 rootCommand.AddCommand(removeCommand);
 rootCommand.AddCommand(refreshCommand);
 
-return await rootCommand.InvokeAsync(args);
+return rootCommand.Invoke(args);
 
-async void AddLink(string link)
+void AddLink(string link)
 {
+    var context = GetContext();
+    
     if (!IsUrl(link))
     {
         Console.WriteLine("Link is not a valid HTTP/HTTPS url!");
         return;
     }
 
-    var (feed, info) = await RSSParser.Fetch(link);
+    var (feed, info) = RSSParser.Fetch(link);
 
-    if (await db.Blogs.AnyAsync(b => b.Guid == info.Link && b.Source != null))
+    if (context.Blogs.Any(b => b.Guid == info.Link && b.Source != null))
     {
         Console.WriteLine("This source is already exists in database!");
         return;
     }
 
-    await UpdateOrCreateBlog(feed, info, true);
+    UpdateOrCreateBlog(feed, info, link, true);
     
-    DoRefresh(feed, info);
+    DoRefresh(feed, info, link);
     
     Console.WriteLine("Successfully added source!");
 }
 
-async void RemoveLink(string link)
+void RemoveLink(string link)
 {
+    var context = GetContext();
+    
     if (IsUrl(link))
     {
-        var source = await db.RSSDataSources.Include(dataSource => dataSource.Blog)
-            .FirstOrDefaultAsync(d => d.Link == link);
+        var source = context.RSSDataSources.Include(dataSource => dataSource.Blog)
+            .FirstOrDefault(d => d.Link == link);
         if (source is null)
         {
             Console.WriteLine("No such source!");
@@ -70,16 +74,15 @@ async void RemoveLink(string link)
         }
 
         source.Blog.Source = null;
-        db.RSSDataSources.Remove(source);
+        context.RSSDataSources.Remove(source);
         
-        
-        await db.SaveChangesAsync();
+        context.SaveChanges();
         
         Console.WriteLine("Successfully removed!");
     }
     else
     {
-        var blogs = db.Blogs.Where(b => b.Name.StartsWith(link));
+        var blogs = context.Blogs.Where(b => b.Name.StartsWith(link));
         if (blogs.Count() > 1)
         {
             Console.WriteLine("More than 1 match: ");
@@ -98,9 +101,9 @@ async void RemoveLink(string link)
             var blog = blogs.Include(blog => blog.Source).First();
             if (blog.Source != null)
             {
-                db.DataSources.Remove(blog.Source);
+                context.DataSources.Remove(blog.Source);
                 blog.Source = null;
-                await db.SaveChangesAsync();
+                context.SaveChanges();
                 Console.WriteLine("Successful removed source!");
             }
             else
@@ -111,16 +114,18 @@ async void RemoveLink(string link)
     }
 }
 
-async void Refresh(string link = "", bool force = false)
+void Refresh(string link = "", bool force = false)
 {
+    var context = GetContext();
+    
     if (string.IsNullOrWhiteSpace(link))
     {
-        foreach (var source in db.RSSDataSources.Where(d => d.Status == DataSourceStatus.Ok))
+        foreach (var source in context.RSSDataSources.Where(d => d.Status == DataSourceStatus.Ok))
         {
             if (force || source.NextFetchTime < now)
             {
-                var (feed, info) = await RSSParser.Fetch(link);   
-                DoRefresh(feed, info);
+                var (feed, info) = RSSParser.Fetch(source.Link);   
+                DoRefresh(feed, info, source.Link);
             }
         }
     }
@@ -128,7 +133,7 @@ async void Refresh(string link = "", bool force = false)
     {
         if (IsUrl(link))
         {
-            var source = await db.RSSDataSources.Where(d => d.Link == link).FirstOrDefaultAsync();
+            var source = context.RSSDataSources.FirstOrDefault(d => d.Link == link);
             if (source is null)
             {
                 Console.WriteLine("This source is not exists!");
@@ -137,7 +142,7 @@ async void Refresh(string link = "", bool force = false)
         }
         else
         {
-            var blogs = db.Blogs.Where(b => b.Name.StartsWith(link) 
+            var blogs = context.Blogs.Where(b => b.Name.StartsWith(link) 
                                             && b.Source != null 
                                             && b.Source.Status == DataSourceStatus.Ok);
             foreach (var blog in blogs.Include(blog => blog.Source)) 
@@ -146,8 +151,8 @@ async void Refresh(string link = "", bool force = false)
                 {
                     if (force || source.NextFetchTime < now)
                     {
-                        var (feed, info) = await RSSParser.Fetch(blog.Source!.Link);
-                        DoRefresh(feed, info);
+                        var (feed, info) = RSSParser.Fetch(blog.Source!.Link);
+                        DoRefresh(feed, info, source.Link);
                     }
                 }
             }
@@ -157,22 +162,24 @@ async void Refresh(string link = "", bool force = false)
     Console.WriteLine("Successfully refreshed!");
 }
 
-async Task<DataSource> UpdateOrCreateDataSource(Feed feed, FeedAdditionalInfo info)
+DataSource UpdateOrCreateDataSource(Feed feed, FeedAdditionalInfo info, string link)
 {
-    var dataSource = await db.RSSDataSources.FirstOrDefaultAsync(s => s.Link == feed.Link);
+    var context = GetContext();
+    
+    var dataSource = context.RSSDataSources.FirstOrDefault(s => s.Link == link);
 
     if (dataSource is null)
     {
         dataSource = new RSSDataSource
         {
-            Link = feed.Link, 
+            Link = link, 
             Type = DataSourceType.RSS, 
             LastUpdateTime = feed.LastUpdatedDate,
             PrevFetchTime = now,
             UpdateFrequency = info.SyUpdateFrequency,
             NextFetchTime = info.NextFetchTime
         };
-        await db.RSSDataSources.AddAsync(dataSource);
+        context.RSSDataSources.Add(dataSource);
     }
     else
     {
@@ -196,15 +203,17 @@ async Task<DataSource> UpdateOrCreateDataSource(Feed feed, FeedAdditionalInfo in
             dataSource.NextFetchTime = info.NextFetchTime;
         }
     }
-    await db.SaveChangesAsync();
+    context.SaveChanges();
     
     return dataSource;
 }
 
-async Task<Blog> UpdateOrCreateBlog(Feed feed, FeedAdditionalInfo info, bool createDataSource = false)
+Blog UpdateOrCreateBlog(Feed feed, FeedAdditionalInfo info, string link, bool createDataSource = false)
 {
-    var blog = await db.Blogs.Include(blog => blog.Source)
-        .FirstOrDefaultAsync(b => b.Guid == feed.Link);
+    var context = GetContext();
+    
+    var blog = context.Blogs.Include(blog => blog.Source)
+        .FirstOrDefault(b => b.Guid == feed.Link);
     if (blog is null)
     {
         blog = new Blog
@@ -213,9 +222,9 @@ async Task<Blog> UpdateOrCreateBlog(Feed feed, FeedAdditionalInfo info, bool cre
             Description = feed.Description,
             Link = info.Link,
             Guid = info.Link,
-            Source = createDataSource ? await UpdateOrCreateDataSource(feed, info) : null
+            Source = createDataSource ? UpdateOrCreateDataSource(feed, info, link) : null
         };
-        await db.Blogs.AddAsync(blog);
+        context.Blogs.Add(blog);
     }
     else
     {
@@ -236,22 +245,24 @@ async Task<Blog> UpdateOrCreateBlog(Feed feed, FeedAdditionalInfo info, bool cre
 
         if (blog.Source is null && createDataSource)
         {
-            blog.Source = await UpdateOrCreateDataSource(feed, info);
+            blog.Source = UpdateOrCreateDataSource(feed, info, link);
         }
     }
 
-    await db.SaveChangesAsync();
+    context.SaveChanges();
     
     return blog;
 }
 
-async void DoRefresh(Feed feed, FeedAdditionalInfo info)
+void DoRefresh(Feed feed, FeedAdditionalInfo info, string link)
 {
-    var blog = await UpdateOrCreateBlog(feed, info);
+    var context = GetContext();
+    
+    var blog = UpdateOrCreateBlog(feed, info, link);
     
     foreach (var item in feed.Items)
     {
-        if (await db.Posts.AnyAsync(p => p.Guid == item.Id))
+        if (context.Posts.Any(p => p.Guid == item.Id))
         {
             continue;
         }
@@ -259,15 +270,15 @@ async void DoRefresh(Feed feed, FeedAdditionalInfo info)
         var tags = new List<Tag>();
         foreach (var category in item.Categories)
         {
-            var tag = await db.Tags.FirstOrDefaultAsync(t => t.Name == category);
+            var tag = context.Tags.FirstOrDefault(t => t.Name == category);
             if (tag is null)
             {
                 tag = new Tag
                 {
                     Name = category
                 };
-                await db.Tags.AddAsync(tag);
-                await db.SaveChangesAsync();
+                context.Tags.Add(tag);
+                context.SaveChanges();
             }
 
             tags.Add(tag);
@@ -283,11 +294,11 @@ async void DoRefresh(Feed feed, FeedAdditionalInfo info)
             Tags = tags,
             Blog = blog
         };
-        await db.Posts.AddAsync(post);
-        await db.SaveChangesAsync();
+        context.Posts.Add(post);
+        context.SaveChanges();
     }
 
-    Console.WriteLine($"Blog {blog} was refreshed.");
+    Console.WriteLine($"Blog {blog.Name} was refreshed.");
 }
 
 bool IsUrl(string str)

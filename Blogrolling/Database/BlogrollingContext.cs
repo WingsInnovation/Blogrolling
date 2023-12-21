@@ -7,15 +7,15 @@ namespace Blogrolling.Database;
 
 public class BlogrollingContext(DbContextOptions<BlogrollingContext> options) : DbContext(options)
 {
-    public DbSet<DataSource> DataSources { get; }
+    public DbSet<DataSource> DataSources { get; set; }
     
-    public DbSet<RSSDataSource> RSSDataSources { get; }
+    public DbSet<RSSDataSource> RSSDataSources { get; set; }
     
-    public DbSet<Blog> Blogs { get; }
+    public DbSet<Blog> Blogs { get; set; }
     
-    public DbSet<Post> Posts { get; }
+    public DbSet<Post> Posts { get; set; }
     
-    public DbSet<Tag> Tags { get; }
+    public DbSet<Tag> Tags { get; set; }
     
     protected override void OnModelCreating(ModelBuilder builder)
     {

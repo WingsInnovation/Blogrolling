@@ -17,7 +17,6 @@ public class Post
     [Comment("文章标题")]
     public string Title { get; set; }
     
-    [Required]
     [Comment("文章介绍")]
     public string? Description { get; set; }
     

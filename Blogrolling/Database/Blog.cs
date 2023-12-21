@@ -35,7 +35,6 @@ public class Blog
 
     #region Foreign Keys
     
-    [Required]
     [Comment("数据源ID")]
     public int? SourceId { get; set; }
     

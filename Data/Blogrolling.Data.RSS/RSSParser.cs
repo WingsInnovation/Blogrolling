@@ -6,16 +6,16 @@ namespace Blogrolling.Data.RSS;
 
 public class RSSParser
 {
-    public static async Task<(Feed Feed, FeedAdditionalInfo AdditionalInfo)> Fetch(string link)
+    public static (Feed Feed, FeedAdditionalInfo AdditionalInfo) Fetch(string link)
     {
-        var feed = await FeedReader.ReadAsync(link, autoRedirect: true);
+        var feed = FeedReader.ReadAsync(link, autoRedirect: true).Result;
         var document = feed.SpecificFeed.Element.Document!;
 
         var info = new FeedAdditionalInfo();
 
-        if (feed.Type == FeedType.Rss)
+        if (feed.Type is FeedType.Rss or FeedType.Rss_2_0 or FeedType.Rss_1_0 or FeedType.Rss_0_92 or FeedType.Rss_0_91)
         {
-            var blogLink = (await FindElements(document, "rss", "link")).FirstOrDefault();
+            var blogLink = FindElements(document, "rss", "channel", "link").FirstOrDefault();
             if (blogLink is not null)
             {
                 info.Link = blogLink.Value;
@@ -23,18 +23,19 @@ public class RSSParser
         }
         else if (feed.Type == FeedType.Atom)
         {
-            var blogLinks = await FindElements(document, "rss", "link");
-            foreach (var blogLink in blogLinks.Where(blogLink => blogLink.Attribute("rel") == null))
+            var blogLinks = FindElements(document, XName.Get("feed", "http://www.w3.org/2005/Atom"), XName.Get("link", "http://www.w3.org/2005/Atom"));
+            foreach (var blogLink in blogLinks.Where(blogLink => blogLink.Attribute("rel") == null ||
+                                                                 (blogLink.Attribute("rel") != null && blogLink.Attribute("rel")!.Value == "alternate")))
             {
                 info.Link = blogLink.Attribute("href")!.Value;
                 break;
             }
         }
         
-        var updatePeriod = (await FindElements(document, "rss", "channel", "sy:updatePeriod")).FirstOrDefault();
+        var updatePeriod = FindElements(document, "rss", "channel", XName.Get("updatePeriod", "http://purl.org/rss/1.0/modules/syndication/")).FirstOrDefault();
         if (updatePeriod is not null)
         {
-            var updateFrequency = (await FindElements(document, "rss", "channel", "sy:updateFrequency")).FirstOrDefault();
+            var updateFrequency = FindElements(document, "rss", "channel", XName.Get("updateFrequency", "http://purl.org/rss/1.0/modules/syndication/")).FirstOrDefault();
             if (updateFrequency is not null)
             {
                 if (int.TryParse(updateFrequency.Value, out var value))
@@ -43,7 +44,7 @@ public class RSSParser
 
                     if (info.SyUpdateFrequency is not null)
                     {
-                        var updateBase = (await FindElements(document, "rss", "channel", "sy:updateBase")).FirstOrDefault();
+                        var updateBase = FindElements(document, "rss", "channel", XName.Get("updateBase", "http://purl.org/rss/1.0/modules/syndication/")).FirstOrDefault();
                         if (updateBase is not null)
                         {
                             if (DateTime.TryParse(updateBase.Value, CultureInfo.InvariantCulture, out var baseDateTime))
@@ -63,7 +64,7 @@ public class RSSParser
         return (feed, info);
     }
 
-    private static async Task<List<XElement>> FindElements(XContainer container, params string[] path)
+    private static List<XElement> FindElements(XContainer container, params XName[] path)
     {
         var list = new List<XElement>();
 
@@ -71,7 +72,7 @@ public class RSSParser
         {
             foreach (var element in container.Elements(path[0]))
             {
-                list.AddRange(await FindElements(element, path[1..]));
+                list.AddRange(FindElements(element, path[1..]));
             }
         }
         else
