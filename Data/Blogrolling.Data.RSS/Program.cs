@@ -5,6 +5,7 @@ using Blogrolling.Database.Sources;
 using Blogrolling.Utilities;
 using CodeHollow.FeedReader;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 var rootCommand = new RootCommand("RSS DataSource for Blogrolling.");
 
@@ -23,6 +24,7 @@ refreshCommand.AddOption(linkOption);
 refreshCommand.AddOption(forceRefreshOption);
 
 var now = DateTime.Now;
+var context = GetContext();
 
 addCommand.SetHandler(AddLink, addLinkArgument);
 removeCommand.SetHandler(RemoveLink, removeLinkArgument);
@@ -36,7 +38,7 @@ return rootCommand.Invoke(args);
 
 void AddLink(string link)
 {
-    var context = GetContext();
+    // var context = GetContext();
     
     if (!IsUrl(link))
     {
@@ -46,22 +48,20 @@ void AddLink(string link)
 
     var (feed, info) = RSSParser.Fetch(link);
 
-    if (context.Blogs.Any(b => b.Guid == info.Link && b.Source != null))
+    if (context.RSSDataSources.Any(s => s.Link == link))
     {
         Console.WriteLine("This source is already exists in database!");
         return;
     }
-
-    UpdateOrCreateBlog(feed, info, link, true);
     
-    DoRefresh(feed, info, link);
+    DoRefresh(feed, info, link, true);
     
     Console.WriteLine("Successfully added source!");
 }
 
 void RemoveLink(string link)
 {
-    var context = GetContext();
+    // using var context = GetContext();
     
     if (IsUrl(link))
     {
@@ -116,7 +116,7 @@ void RemoveLink(string link)
 
 void Refresh(string link = "", bool force = false)
 {
-    var context = GetContext();
+    // using var context = GetContext();
     
     if (string.IsNullOrWhiteSpace(link))
     {
@@ -162,55 +162,63 @@ void Refresh(string link = "", bool force = false)
     Console.WriteLine("Successfully refreshed!");
 }
 
-DataSource UpdateOrCreateDataSource(Feed feed, FeedAdditionalInfo info, string link)
+DataSource CreateDataSource(Feed feed, FeedAdditionalInfo info, string link)
 {
-    var context = GetContext();
+    // using var context = GetContext();
+    
+    var dataSource = new RSSDataSource
+    {
+        Link = link, 
+        Type = DataSourceType.RSS, 
+        LastUpdateTime = feed.LastUpdatedDate,
+        PrevFetchTime = now,
+        UpdateFrequency = info.SyUpdateFrequency,
+        NextFetchTime = info.NextFetchTime
+    };
+    context.RSSDataSources.Add(dataSource);
+    
+    return dataSource;
+}
+
+DataSource UpdateDataSource(Feed feed, FeedAdditionalInfo info, string link)
+{
+    // using var context = GetContext();
     
     var dataSource = context.RSSDataSources.FirstOrDefault(s => s.Link == link);
 
     if (dataSource is null)
     {
-        dataSource = new RSSDataSource
-        {
-            Link = link, 
-            Type = DataSourceType.RSS, 
-            LastUpdateTime = feed.LastUpdatedDate,
-            PrevFetchTime = now,
-            UpdateFrequency = info.SyUpdateFrequency,
-            NextFetchTime = info.NextFetchTime
-        };
-        context.RSSDataSources.Add(dataSource);
+        throw new Exception("Source is null!");
     }
-    else
+    
+    if (dataSource.LastUpdateTime != feed.LastUpdatedDate)
     {
-        if (dataSource.LastUpdateTime != feed.LastUpdatedDate)
-        {
-            dataSource.LastUpdateTime = feed.LastUpdatedDate;
-        }
-
-        if (dataSource.PrevFetchTime is not null && dataSource.PrevFetchTime.Value < now)
-        {
-            dataSource.PrevFetchTime = now;
-        }
-
-        if (info.SyUpdateFrequency is not null && dataSource.UpdateFrequency != info.SyUpdateFrequency)
-        {
-            dataSource.UpdateFrequency = info.SyUpdateFrequency;
-        }
-
-        if (dataSource.NextFetchTime < info.NextFetchTime)
-        {
-            dataSource.NextFetchTime = info.NextFetchTime;
-        }
+        dataSource.LastUpdateTime = feed.LastUpdatedDate;
     }
-    context.SaveChanges();
+
+    if (dataSource.PrevFetchTime is not null && dataSource.PrevFetchTime.Value < now)
+    {
+        dataSource.PrevFetchTime = now;
+    }
+
+    if (info.SyUpdateFrequency is not null && dataSource.UpdateFrequency != info.SyUpdateFrequency)
+    {
+        dataSource.UpdateFrequency = info.SyUpdateFrequency;
+    }
+
+    if (dataSource.NextFetchTime < info.NextFetchTime)
+    {
+        dataSource.NextFetchTime = info.NextFetchTime;
+    }
+    
+    // context.SaveChanges();
     
     return dataSource;
 }
 
 Blog UpdateOrCreateBlog(Feed feed, FeedAdditionalInfo info, string link, bool createDataSource = false)
 {
-    var context = GetContext();
+    // using var context = GetContext();
     
     var blog = context.Blogs.Include(blog => blog.Source)
         .FirstOrDefault(b => b.Guid == feed.Link);
@@ -222,7 +230,7 @@ Blog UpdateOrCreateBlog(Feed feed, FeedAdditionalInfo info, string link, bool cr
             Description = feed.Description,
             Link = info.Link,
             Guid = info.Link,
-            Source = createDataSource ? UpdateOrCreateDataSource(feed, info, link) : null
+            Source = createDataSource ? CreateDataSource(feed, info, link) : null
         };
         context.Blogs.Add(blog);
     }
@@ -243,22 +251,29 @@ Blog UpdateOrCreateBlog(Feed feed, FeedAdditionalInfo info, string link, bool cr
             blog.Link = info.Link;
         }
 
-        if (blog.Source is null && createDataSource)
+        if (blog.Source is null)
         {
-            blog.Source = UpdateOrCreateDataSource(feed, info, link);
+            if (createDataSource)
+            {
+                blog.Source = CreateDataSource(feed, info, link);
+            }
+        }
+        else
+        {
+            blog.Source = UpdateDataSource(feed, info, link);
         }
     }
 
-    context.SaveChanges();
+    // context.SaveChanges();
     
     return blog;
 }
 
-void DoRefresh(Feed feed, FeedAdditionalInfo info, string link)
+void DoRefresh(Feed feed, FeedAdditionalInfo info, string link, bool createDataSource = false)
 {
-    var context = GetContext();
+    // using var context = GetContext();
     
-    var blog = UpdateOrCreateBlog(feed, info, link);
+    var blog = UpdateOrCreateBlog(feed, info, link, createDataSource);
     
     foreach (var item in feed.Items)
     {
@@ -295,8 +310,9 @@ void DoRefresh(Feed feed, FeedAdditionalInfo info, string link)
             Blog = blog
         };
         context.Posts.Add(post);
-        context.SaveChanges();
     }
+    
+    context.SaveChanges();
 
     Console.WriteLine($"Blog {blog.Name} was refreshed.");
 }
@@ -317,6 +333,7 @@ BlogrollingContext GetContext()
     
     var optionsBuilder = new DbContextOptionsBuilder<BlogrollingContext>();
     optionsBuilder.UseLazyLoadingProxies()
+        .UseLoggerFactory(LoggerFactory.Create(builder => builder.AddConsole()))
         .UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
     return new BlogrollingContext(optionsBuilder.Options);
 }

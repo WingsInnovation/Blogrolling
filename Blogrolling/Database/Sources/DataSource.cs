@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Blogrolling.Database.Sources;
 
+[Index(nameof(Link), IsUnique = true)]
 [Comment("数据源")]
 public class DataSource
 {
