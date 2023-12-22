@@ -41,6 +41,8 @@ public class Blog
     public virtual DataSource? Source { get; set; }
     
     public virtual IEnumerable<Post> Posts { get; set; }
+    
+    public virtual IEnumerable<Tag> Tags { get; set; }
 
     #endregion
 }

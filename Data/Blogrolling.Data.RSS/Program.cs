@@ -1,11 +1,10 @@
 ﻿using System.CommandLine;
 using Blogrolling.Data.RSS;
+using Blogrolling.Data.RSS.Extensions;
 using Blogrolling.Database;
 using Blogrolling.Database.Sources;
-using Blogrolling.Utilities;
 using CodeHollow.FeedReader;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 var rootCommand = new RootCommand("RSS DataSource for Blogrolling.");
 
@@ -24,7 +23,7 @@ refreshCommand.AddOption(linkOption);
 refreshCommand.AddOption(forceRefreshOption);
 
 var now = DateTime.Now;
-var context = GetContext();
+var context = Helper.GetContext();
 
 addCommand.SetHandler(AddLink, addLinkArgument);
 removeCommand.SetHandler(RemoveLink, removeLinkArgument);
@@ -38,15 +37,13 @@ return rootCommand.Invoke(args);
 
 void AddLink(string link)
 {
-    // var context = GetContext();
-    
-    if (!IsUrl(link))
+    if (!Helper.IsUrl(link))
     {
         Console.WriteLine("Link is not a valid HTTP/HTTPS url!");
         return;
     }
 
-    var (feed, info) = RSSParser.Fetch(link);
+    var feed = RSSParser.Fetch(link);
 
     if (context.RSSDataSources.Any(s => s.Link == link))
     {
@@ -54,16 +51,14 @@ void AddLink(string link)
         return;
     }
     
-    DoRefresh(feed, info, link, true);
+    DoRefresh(feed, link, true);
     
     Console.WriteLine("Successfully added source!");
 }
 
 void RemoveLink(string link)
 {
-    // using var context = GetContext();
-    
-    if (IsUrl(link))
+    if (Helper.IsUrl(link))
     {
         var source = context.RSSDataSources.Include(dataSource => dataSource.Blog)
             .FirstOrDefault(d => d.Link == link);
@@ -116,22 +111,20 @@ void RemoveLink(string link)
 
 void Refresh(string link = "", bool force = false)
 {
-    // using var context = GetContext();
-    
     if (string.IsNullOrWhiteSpace(link))
     {
-        foreach (var source in context.RSSDataSources.Where(d => d.Status == DataSourceStatus.Ok))
+        foreach (var source in context.RSSDataSources.Where(d => d.Status == DataSourceStatus.Ok).ToList())
         {
             if (force || source.NextFetchTime < now)
             {
-                var (feed, info) = RSSParser.Fetch(source.Link);   
-                DoRefresh(feed, info, source.Link);
+                var feed = RSSParser.Fetch(source.Link);   
+                DoRefresh(feed, source.Link);
             }
         }
     }
     else
     {
-        if (IsUrl(link))
+        if (Helper.IsUrl(link))
         {
             var source = context.RSSDataSources.FirstOrDefault(d => d.Link == link);
             if (source is null)
@@ -145,14 +138,14 @@ void Refresh(string link = "", bool force = false)
             var blogs = context.Blogs.Where(b => b.Name.StartsWith(link) 
                                             && b.Source != null 
                                             && b.Source.Status == DataSourceStatus.Ok);
-            foreach (var blog in blogs.Include(blog => blog.Source)) 
+            foreach (var blog in blogs.Include(blog => blog.Source).ToList()) 
             {
                 if (blog.Source!.Type == DataSourceType.RSS && blog.Source is RSSDataSource source)
                 {
                     if (force || source.NextFetchTime < now)
                     {
-                        var (feed, info) = RSSParser.Fetch(blog.Source!.Link);
-                        DoRefresh(feed, info, source.Link);
+                        var feed = RSSParser.Fetch(blog.Source!.Link);
+                        DoRefresh(feed, source.Link);
                     }
                 }
             }
@@ -164,8 +157,6 @@ void Refresh(string link = "", bool force = false)
 
 DataSource CreateDataSource(Feed feed, FeedAdditionalInfo info, string link)
 {
-    // using var context = GetContext();
-    
     var dataSource = new RSSDataSource
     {
         Link = link, 
@@ -182,8 +173,6 @@ DataSource CreateDataSource(Feed feed, FeedAdditionalInfo info, string link)
 
 DataSource UpdateDataSource(Feed feed, FeedAdditionalInfo info, string link)
 {
-    // using var context = GetContext();
-    
     var dataSource = context.RSSDataSources.FirstOrDefault(s => s.Link == link);
 
     if (dataSource is null)
@@ -211,14 +200,12 @@ DataSource UpdateDataSource(Feed feed, FeedAdditionalInfo info, string link)
         dataSource.NextFetchTime = info.NextFetchTime;
     }
     
-    // context.SaveChanges();
-    
     return dataSource;
 }
 
-Blog UpdateOrCreateBlog(Feed feed, FeedAdditionalInfo info, string link, bool createDataSource = false)
+Blog UpdateOrCreateBlog(Feed feed, string link, bool createDataSource = false)
 {
-    // using var context = GetContext();
+    var info = feed.GetAdditionalInfo();
     
     var blog = context.Blogs.Include(blog => blog.Source)
         .FirstOrDefault(b => b.Guid == feed.Link);
@@ -264,76 +251,98 @@ Blog UpdateOrCreateBlog(Feed feed, FeedAdditionalInfo info, string link, bool cr
         }
     }
 
-    // context.SaveChanges();
-    
     return blog;
 }
 
-void DoRefresh(Feed feed, FeedAdditionalInfo info, string link, bool createDataSource = false)
+void DoRefresh(Feed feed, string link, bool createDataSource = false)
 {
-    // using var context = GetContext();
-    
-    var blog = UpdateOrCreateBlog(feed, info, link, createDataSource);
+    var blog = UpdateOrCreateBlog(feed, link, createDataSource);
+
+    var tagsToAdd = new List<Tag>();
     
     foreach (var item in feed.Items)
     {
-        if (context.Posts.Any(p => p.Guid == item.Id))
-        {
-            continue;
-        }
-
+        var updateTime = item.GetUpdateTime(feed.Type);
+        var dirty = false;
+        
         var tags = new List<Tag>();
-        foreach (var category in item.Categories)
+        foreach (var category in item.GetCategories(feed.Type))
         {
-            var tag = context.Tags.FirstOrDefault(t => t.Name == category);
+            var tag = context.Tags.FirstOrDefault(t => t.Blog == blog && t.Guid == (category.Guid ?? category.Name))
+                      ?? tagsToAdd.FirstOrDefault(t => t.Guid == (category.Guid ?? category.Name));
+
             if (tag is null)
             {
                 tag = new Tag
                 {
-                    Name = category
+                    Name = Uri.UnescapeDataString(category.Name),
+                    Guid = category.Guid ?? category.Name,
+                    Link = category.Link,
+                    Blog = blog
                 };
-                context.Tags.Add(tag);
-                context.SaveChanges();
+                tagsToAdd.Add(tag);
+                dirty = true;
             }
 
             tags.Add(tag);
         }
 
-        var post = new Post
+        var post = context.Posts.FirstOrDefault(p => p.Guid == item.Id);
+        
+        if (post is null)
         {
-            Title = item.Title,
-            Description = item.Description,
-            Author = item.Author,
-            Link = item.Link,
-            Guid = item.Id,
-            Tags = tags,
-            Blog = blog
-        };
-        context.Posts.Add(post);
+            post = new Post
+            {
+                Title = item.Title,
+                Description = item.Description,
+                Author = item.Author,
+                Link = item.Link,
+                Guid = item.Id,
+                Tags = tags,
+                Blog = blog,
+                PublishTime = item.PublishingDate ?? now
+            };
+            
+            context.Posts.Add(post);
+        }
+
+        if (post.Title != item.Title)
+        {
+            post.Title = item.Title;
+            dirty = true;
+        }
+
+        if (post.Description != item.Description)
+        {
+            post.Description = item.Description;
+            dirty = true;
+        }
+        
+        if (post.Link != item.Link)
+        {
+            post.Link = item.Link;
+            dirty = true;
+        }
+
+        var author = item.GetAuthor(feed.Type);
+        if (post.Author != author)
+        {
+            post.Author = author;
+            dirty = true;
+        }
+
+        if (!dirty && updateTime is not null)
+        {
+            post.UpdateTime = updateTime;
+        }
+
+        if (dirty)
+        {
+            post.UpdateTime = now;
+        }
     }
     
     context.SaveChanges();
 
     Console.WriteLine($"Blog {blog.Name} was refreshed.");
-}
-
-bool IsUrl(string str)
-{
-    return Uri.TryCreate(str, UriKind.Absolute, out var result)
-           && (result.Scheme == Uri.UriSchemeHttp || result.Scheme == Uri.UriSchemeHttps);
-}
-
-BlogrollingContext GetContext()
-{
-    var connectionString = ConfigHelper.GetConnectionString();
-    if (string.IsNullOrWhiteSpace(connectionString))
-    {
-        throw new Exception("Please place the ConnectionString into '%USER_PROFILE%/.config/blogrolling/connectionString'.");
-    }
-    
-    var optionsBuilder = new DbContextOptionsBuilder<BlogrollingContext>();
-    optionsBuilder.UseLazyLoadingProxies()
-        .UseLoggerFactory(LoggerFactory.Create(builder => builder.AddConsole()))
-        .UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
-    return new BlogrollingContext(optionsBuilder.Options);
 }

@@ -30,12 +30,28 @@ public class BlogrollingContext(DbContextOptions<BlogrollingContext> options) : 
             .HasMany(b => b.Posts)
             .WithOne(p => p.Blog)
             .HasForeignKey(p => p.BlogId);
+        
 
         builder.Entity<Post>()
             .HasMany(p => p.Tags)
             .WithMany(t => t.Posts)
             .UsingEntity<PostTag>();
 
+        builder.Entity<Post>()
+            .Property(p => p.PublishTime)
+            .HasConversion(new DateTimeToISO8601Converter());
+        
+        builder.Entity<Post>()
+            .Property(p => p.UpdateTime)
+            .HasConversion(new DateTimeToISO8601Converter());
+
+
+        builder.Entity<Tag>()
+            .HasOne(t => t.Blog)
+            .WithMany(b => b.Tags)
+            .HasForeignKey(t => t.BlogId);
+
+        
         builder.Entity<DataSource>()
             .HasDiscriminator(d => d.Type)
             .HasValue<DataSource>(DataSourceType.Manual)

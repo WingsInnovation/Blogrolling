@@ -6,5 +6,5 @@ public class FeedAdditionalInfo
     public string Link { get; set; }
 
     public DateTime? SyUpdateFrequency { get; set; }
-    public DateTime NextFetchTime { get; set; } = DateTime.Now.AddHours(1);
+    public DateTime NextFetchTime { get; set; } = DateTime.Now.AddHours(12);
 }

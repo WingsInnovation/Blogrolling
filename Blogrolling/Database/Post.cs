@@ -30,6 +30,13 @@ public class Post
     [Required]
     [Comment("文章GUID")]
     public string Guid { get; set; }
+    
+    [Required]
+    [Comment("发布时间")]
+    public DateTime PublishTime { get; set; }
+    
+    [Comment("更新时间")]
+    public DateTime? UpdateTime { get; set; }
 
     #region Foreign Keys
 
