@@ -59,7 +59,7 @@ public static class FeedItemExtensions
             {
                 var link = category.Attribute("scheme");
                 var guid = category.Attribute("term");
-                var name = category.Attribute("label");
+                var name = category.Attribute("label") ?? guid;
                 list.Add(new FeedTag(name!.Value, link?.Value, guid?.Value));
             }
             
@@ -71,10 +71,10 @@ public static class FeedItemExtensions
     
     public class FeedTag(string name, string? link = null, string? guid = null)
     {
-        public string Name { get; } = name;
+        public string Name { get; } = Uri.UnescapeDataString(name.Trim());
 
-        public string? Link { get; } = link;
+        public string? Link { get; } = link?.Trim().ToLower();
 
-        public string? Guid { get; } = guid;
+        public string? Guid { get; } = guid?.Trim().ToLower();
     }
 }

@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Blogrolling.Database;
 
-[Index(nameof(Guid), nameof(BlogId), IsUnique = true)]
+[Index(nameof(Guid), nameof(BlogId), nameof(Link), IsUnique = true)]
 [Comment("标签")]
 public class Tag
 {

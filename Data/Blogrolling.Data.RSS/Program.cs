@@ -45,6 +45,12 @@ void AddLink(string link)
 
     var feed = RSSParser.Fetch(link);
 
+    if (feed is null)
+    {
+        Console.WriteLine("This link can not be reached!");
+        return;
+    }
+
     if (context.RSSDataSources.Any(s => s.Link == link))
     {
         Console.WriteLine("This source is already exists in database!");
@@ -275,7 +281,7 @@ void DoRefresh(Feed feed, string link, bool createDataSource = false)
             {
                 tag = new Tag
                 {
-                    Name = Uri.UnescapeDataString(category.Name),
+                    Name = category.Name,
                     Guid = category.Guid ?? category.Name,
                     Link = category.Link,
                     Blog = blog
