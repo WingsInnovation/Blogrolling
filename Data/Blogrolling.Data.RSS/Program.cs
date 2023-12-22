@@ -51,10 +51,17 @@ void AddLink(string link)
         return;
     }
 
-    if (context.RSSDataSources.Any(s => s.Link == link))
+    var source = context.RSSDataSources.FirstOrDefault(s => s.Link == link);
+    if (source != null)
     {
-        Console.WriteLine("This source is already exists in database!");
-        return;
+        if (source.Status == DataSourceStatus.Ok)
+        {
+            Console.WriteLine("This source is already exists in database!");
+            return;
+        }
+
+        source.Status = DataSourceStatus.Ok;
+        context.SaveChanges();
     }
     
     DoRefresh(feed, link, true);
@@ -124,6 +131,14 @@ void Refresh(string link = "", bool force = false)
             if (force || source.NextFetchTime < now)
             {
                 var feed = RSSParser.Fetch(source.Link);   
+                if (feed is null)
+                {
+                    source.Status = DataSourceStatus.Invalid;
+                    context.SaveChanges();
+                    Console.WriteLine($"Source {source.Link} can't be reached!");
+                    continue;
+                }
+                
                 DoRefresh(feed, source.Link);
             }
         }
@@ -151,6 +166,14 @@ void Refresh(string link = "", bool force = false)
                     if (force || source.NextFetchTime < now)
                     {
                         var feed = RSSParser.Fetch(blog.Source!.Link);
+                        if (feed is null)
+                        {
+                            source.Status = DataSourceStatus.Invalid;
+                            context.SaveChanges();
+                            Console.WriteLine($"Source {source.Link} can't be reached!");
+                            continue;
+                        }
+                        
                         DoRefresh(feed, source.Link);
                     }
                 }
