@@ -210,13 +210,18 @@ DataSource CreateDataSource(Feed feed, FeedAdditionalInfo info, string link)
     return dataSource;
 }
 
-DataSource UpdateDataSource(Feed feed, FeedAdditionalInfo info, string link)
+DataSource UpdateDataSource(Feed feed, FeedAdditionalInfo info, string link, int? id)
 {
-    var dataSource = context.RSSDataSources.FirstOrDefault(s => s.Link == link);
+    var dataSource = context.RSSDataSources.FirstOrDefault(s => s.Id == id);
 
     if (dataSource is null)
     {
         throw new Exception("Source is null!");
+    }
+
+    if (dataSource.Link != link)
+    {
+        dataSource.Link = link;
     }
     
     if (dataSource.LastUpdateTime != feed.LastUpdatedDate)
@@ -244,10 +249,12 @@ DataSource UpdateDataSource(Feed feed, FeedAdditionalInfo info, string link)
 
 Blog UpdateOrCreateBlog(Feed feed, string link, bool createDataSource = false)
 {
-    var info = feed.GetAdditionalInfo();
+    var info = feed.GetAdditionalInfo(link);
+
+    var hashedBlogGuid = Helper.HashSha512(info.Link);
     
     var blog = context.Blogs.Include(blog => blog.Source)
-        .FirstOrDefault(b => b.Guid == feed.Link);
+        .FirstOrDefault(b => b.Guid == hashedBlogGuid);
     if (blog is null)
     {
         blog = new Blog
@@ -255,7 +262,7 @@ Blog UpdateOrCreateBlog(Feed feed, string link, bool createDataSource = false)
             Name = feed.Title,
             Description = feed.Description,
             Link = info.Link,
-            Guid = info.Link,
+            Guid = hashedBlogGuid,
             Source = createDataSource ? CreateDataSource(feed, info, link) : null
         };
         context.Blogs.Add(blog);
@@ -286,7 +293,7 @@ Blog UpdateOrCreateBlog(Feed feed, string link, bool createDataSource = false)
         }
         else
         {
-            blog.Source = UpdateDataSource(feed, info, link);
+            blog.Source = UpdateDataSource(feed, info, link, blog.SourceId);
         }
     }
 
@@ -296,8 +303,10 @@ Blog UpdateOrCreateBlog(Feed feed, string link, bool createDataSource = false)
 void DoRefresh(Feed feed, string link, bool createDataSource = false)
 {
     var blog = UpdateOrCreateBlog(feed, link, createDataSource);
+    
 
     var tagsToAdd = new List<Tag>();
+    var postsToAdd = new List<Post>();
     
     foreach (var item in feed.Items)
     {
@@ -307,15 +316,17 @@ void DoRefresh(Feed feed, string link, bool createDataSource = false)
         var tags = new List<Tag>();
         foreach (var category in item.GetCategories(feed.Type))
         {
-            var tag = context.Tags.FirstOrDefault(t => t.Blog == blog && t.Guid == (category.Guid ?? category.Name))
-                      ?? tagsToAdd.FirstOrDefault(t => t.Guid == (category.Guid ?? category.Name));
+            var hashedTagGuid = Helper.HashSha512(category.Guid ?? category.Name);
+            
+            var tag = context.Tags.FirstOrDefault(t => t.Blog == blog && t.Guid == hashedTagGuid)
+                      ?? tagsToAdd.FirstOrDefault(t => t.Guid == hashedTagGuid);
 
             if (tag is null)
             {
                 tag = new Tag
                 {
                     Name = category.Name,
-                    Guid = category.Guid ?? category.Name,
+                    Guid = hashedTagGuid,
                     Link = category.Link,
                     Blog = blog
                 };
@@ -326,7 +337,10 @@ void DoRefresh(Feed feed, string link, bool createDataSource = false)
             tags.Add(tag);
         }
 
-        var post = context.Posts.FirstOrDefault(p => p.Guid == item.Id);
+        
+        var hashedPostGuid = Helper.HashSha512(item.Id ?? item.Link); 
+        var post = context.Posts.FirstOrDefault(p => p.Guid == hashedPostGuid) 
+                   ?? postsToAdd.FirstOrDefault(p => p.Guid == hashedPostGuid);
         
         if (post is null)
         {
@@ -336,13 +350,13 @@ void DoRefresh(Feed feed, string link, bool createDataSource = false)
                 Description = item.Description,
                 Author = item.Author,
                 Link = item.Link,
-                Guid = item.Id,
+                Guid = hashedPostGuid,
                 Tags = tags,
                 Blog = blog,
                 PublishTime = item.PublishingDate ?? now
             };
             
-            context.Posts.Add(post);
+            postsToAdd.Add(post);
         }
 
         if (post.Title != item.Title)
@@ -380,6 +394,8 @@ void DoRefresh(Feed feed, string link, bool createDataSource = false)
             post.UpdateTime = now;
         }
     }
+    
+    context.Posts.AddRange(postsToAdd);
     
     context.SaveChanges();
 

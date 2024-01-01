@@ -30,7 +30,7 @@ public class Blog
     public string Link { get; set; }
     
     [Required]
-    [Comment("博客标志")]
+    [Comment("博客标志的Hash")]
     public string Guid { get; set; }
 
     #region Foreign Keys

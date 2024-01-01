@@ -28,7 +28,7 @@ public class Post
     public string Link { get; set; }
     
     [Required]
-    [Comment("文章GUID")]
+    [Comment("文章GUID的Hash")]
     public string Guid { get; set; }
     
     [Required]

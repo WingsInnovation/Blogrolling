@@ -15,6 +15,22 @@ public static class ConfigHelper
         var file = Path.Combine(ConfigDir, "Debug");
         return File.Exists(file);
     }
+    
+    public static int GetTimeout()
+    {
+        var file = Path.Combine(ConfigDir, "Timeout");
+        
+        if (File.Exists(file))
+        {
+            if (int.TryParse(File.ReadAllText(file), out var i))
+            {
+                return i;
+            }
+        }
+
+        return 5;
+    }
+
 
     private static string GetConfigPath()
     {

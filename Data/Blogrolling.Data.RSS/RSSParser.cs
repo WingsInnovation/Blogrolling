@@ -1,4 +1,5 @@
-﻿using CodeHollow.FeedReader;
+﻿using Blogrolling.Utilities;
+using CodeHollow.FeedReader;
 
 namespace Blogrolling.Data.RSS;
 
@@ -9,6 +10,7 @@ public class RSSParser
         try
         {
             using var client = new HttpClient();
+            // client.Timeout = TimeSpan.FromSeconds(ConfigHelper.GetTimeout());
             var text = client.GetStringAsync(link).Result;
             return FeedReader.ReadFromString(text);
         }

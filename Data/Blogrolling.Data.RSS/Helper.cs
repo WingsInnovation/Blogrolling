@@ -1,4 +1,6 @@
-﻿using Blogrolling.Database;
+﻿using System.Security.Cryptography;
+using System.Text;
+using Blogrolling.Database;
 using Blogrolling.Utilities;
 using CodeHollow.FeedReader;
 using Microsoft.EntityFrameworkCore;
@@ -63,5 +65,33 @@ public class Helper
         }
 
         return updateBase;
+    }
+
+    public static string HashSha512(string str)
+    {
+        var bytes = Encoding.UTF8.GetBytes(str);
+        var hashed = SHA512.HashData(bytes);
+
+        var builder = new StringBuilder(128);
+        foreach (var b in hashed)
+        {
+            builder.Append(b.ToString("X2"));
+        }
+        return builder.ToString();
+    }
+
+    public static string GetBaseUri(string fullPath, string value = "")
+    {
+        if (value == "")
+        {
+            return fullPath.Replace(new Uri(fullPath).PathAndQuery, "");
+        }
+        
+        if (value == "//")
+        {
+            return new Uri(new Uri(fullPath), "/").AbsoluteUri;
+        }
+
+        return new Uri(new Uri(fullPath), value).AbsoluteUri;
     }
 }

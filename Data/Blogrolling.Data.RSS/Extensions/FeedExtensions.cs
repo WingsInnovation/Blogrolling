@@ -5,19 +5,19 @@ namespace Blogrolling.Data.RSS.Extensions;
 
 public static class FeedExtensions
 {
-    public static FeedAdditionalInfo GetAdditionalInfo(this Feed feed)
+    public static FeedAdditionalInfo GetAdditionalInfo(this Feed feed, string link)
     {
         var document = feed.SpecificFeed.Element.Document!;
         var info = new FeedAdditionalInfo();
         
         switch (feed.Type)
         {
-            case FeedType.Rss or FeedType.Rss_2_0 or FeedType.Rss_1_0 or FeedType.Rss_0_92 or FeedType.Rss_0_91:
+            case FeedType.Rss or FeedType.Rss_2_0 or FeedType.Rss_1_0 or FeedType.Rss_0_92 or FeedType.Rss_0_91 or FeedType.MediaRss:
             {
                 var blogLink = XmlHelper.FindElements(document, "rss", "channel", "link").FirstOrDefault();
                 if (blogLink is not null)
                 {
-                    info.Link = blogLink.Value;
+                    info.Link = Helper.GetBaseUri(link, blogLink.Value);
                 }
 
                 break;
@@ -28,7 +28,13 @@ public static class FeedExtensions
                 foreach (var blogLink in blogLinks.Where(blogLink => blogLink.Attribute("rel") == null ||
                                                                      (blogLink.Attribute("rel") != null && blogLink.Attribute("rel")!.Value == "alternate")))
                 {
-                    info.Link = blogLink.Attribute("href")!.Value;
+                    info.Link = Helper.GetBaseUri(link, blogLink.Attribute("href")!.Value);
+                    break;
+                }
+
+                if (info.Link is null)
+                {
+                    info.Link = Helper.GetBaseUri(link);
                     break;
                 }
 
