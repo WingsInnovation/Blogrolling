@@ -25,22 +25,30 @@ refreshCommand.AddOption(forceRefreshOption);
 var now = DateTime.Now;
 var context = Helper.GetContext();
 
-addCommand.SetHandler(AddLink, addLinkArgument);
-removeCommand.SetHandler(RemoveLink, removeLinkArgument);
-refreshCommand.SetHandler(Refresh, linkOption, forceRefreshOption);
+addCommand.SetHandler(l => Task.FromResult(AddLink(l)), addLinkArgument);
+removeCommand.SetHandler(l => Task.FromResult(RemoveLink(l)), removeLinkArgument);
+refreshCommand.SetHandler((l, f) => Task.FromResult(Refresh(l, f)), linkOption, forceRefreshOption);
 
 rootCommand.AddCommand(addCommand);
 rootCommand.AddCommand(removeCommand);
 rootCommand.AddCommand(refreshCommand);
 
-return rootCommand.Invoke(args);
+try
+{
+    return rootCommand.Invoke(args);
+}
+catch (Exception ex)
+{
+    Console.WriteLine(ex);
+    return (int)EnumExitCode.Error;
+}
 
-void AddLink(string link)
+int AddLink(string link)
 {
     if (!Helper.IsUrl(link))
     {
         Console.WriteLine("Link is not a valid HTTP/HTTPS url!");
-        return;
+        return (int)EnumExitCode.InvalidUrl;
     }
 
     var feed = RSSParser.Fetch(link);
@@ -48,7 +56,7 @@ void AddLink(string link)
     if (feed is null)
     {
         Console.WriteLine("This link can not be reached!");
-        return;
+        return (int)EnumExitCode.CantReach;
     }
 
     var source = context.RSSDataSources.FirstOrDefault(s => s.Link == link);
@@ -57,7 +65,7 @@ void AddLink(string link)
         if (source.Status == DataSourceStatus.Ok)
         {
             Console.WriteLine("This source is already exists in database!");
-            return;
+            return (int)EnumExitCode.AlreadyExists;
         }
 
         source.Status = DataSourceStatus.Ok;
@@ -67,9 +75,10 @@ void AddLink(string link)
     DoRefresh(feed, link, true);
     
     Console.WriteLine("Successfully added source!");
+    return (int)EnumExitCode.Success;
 }
 
-void RemoveLink(string link)
+int RemoveLink(string link)
 {
     if (Helper.IsUrl(link))
     {
@@ -78,7 +87,7 @@ void RemoveLink(string link)
         if (source is null)
         {
             Console.WriteLine("No such source!");
-            return;
+            return (int)EnumExitCode.SourceNotFound;
         }
 
         source.Blog.Source = null;
@@ -87,42 +96,42 @@ void RemoveLink(string link)
         context.SaveChanges();
         
         Console.WriteLine("Successfully removed!");
+        return (int)EnumExitCode.Success;
     }
-    else
+
+    var blogs = context.Blogs.Where(b => b.Name.StartsWith(link));
+    if (blogs.Count() > 1)
     {
-        var blogs = context.Blogs.Where(b => b.Name.StartsWith(link));
-        if (blogs.Count() > 1)
+        Console.WriteLine("More than 1 match: ");
+        foreach (var b in blogs)
         {
-            Console.WriteLine("More than 1 match: ");
-            foreach (var blog in blogs)
-            {
-                Console.WriteLine(blog.Name);
-            }
-            Console.WriteLine("Please specify one of above.");
+            Console.WriteLine(b.Name);
         }
-        else if (!blogs.Any())
-        {
-            Console.WriteLine("No such blog!");
-        }
-        else
-        {
-            var blog = blogs.Include(blog => blog.Source).First();
-            if (blog.Source != null)
-            {
-                context.DataSources.Remove(blog.Source);
-                blog.Source = null;
-                context.SaveChanges();
-                Console.WriteLine("Successful removed source!");
-            }
-            else
-            {
-                Console.WriteLine("This blog already has no source!");
-            }
-        }
+        Console.WriteLine("Please specify one of above.");
+        return (int)EnumExitCode.Success;
     }
+
+    if (!blogs.Any())
+    {
+        Console.WriteLine("No such blog!");
+        return (int)EnumExitCode.SourceNotFound;
+    }
+
+    var blog = blogs.Include(blog => blog.Source).First();
+    if (blog.Source != null)
+    {
+        context.DataSources.Remove(blog.Source);
+        blog.Source = null;
+        context.SaveChanges();
+        Console.WriteLine("Successful removed source!");
+        return (int)EnumExitCode.Success;
+    }
+
+    Console.WriteLine("This blog already has no source!");
+    return (int)EnumExitCode.SourceNotFound;
 }
 
-void Refresh(string link = "", bool force = false)
+int Refresh(string link = "", bool force = false)
 {
     if (string.IsNullOrWhiteSpace(link))
     {
@@ -151,7 +160,7 @@ void Refresh(string link = "", bool force = false)
             if (source is null)
             {
                 Console.WriteLine("This source is not exists!");
-                return;
+                return (int)EnumExitCode.SourceNotFound;
             }
         }
         else
@@ -182,6 +191,7 @@ void Refresh(string link = "", bool force = false)
     }
     
     Console.WriteLine("Successfully refreshed!");
+    return (int)EnumExitCode.Success;
 }
 
 DataSource CreateDataSource(Feed feed, FeedAdditionalInfo info, string link)
