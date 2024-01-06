@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 namespace Blogrolling.Database;
@@ -8,6 +9,7 @@ namespace Blogrolling.Database;
 [Comment("博客文章")]
 public class Post
 {
+    [JsonIgnore]
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     [Comment("文章ID")]
@@ -27,6 +29,7 @@ public class Post
     [Comment("链接")]
     public string Link { get; set; }
     
+    [JsonIgnore]
     [Required]
     [Comment("文章GUID的Hash")]
     public string Guid { get; set; }
@@ -40,10 +43,12 @@ public class Post
 
     #region Foreign Keys
 
+    [JsonIgnore]
     [Required]
     [Comment("博客ID")]
     public int BlogId { get; set; }
     
+    [JsonIgnore]
     public virtual Blog Blog { get; set; }
     
     public virtual IEnumerable<Tag> Tags { get; set; }
