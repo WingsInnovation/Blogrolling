@@ -7,32 +7,35 @@ Blogrolling 的 RSS 内容获取器。
 ### 添加源
 
 ```shell
-Blogrolling.Data.RSS add <link>
+dotnet Blogrolling.Data.RSS.dll -- add <link>
 ```
 
 ### 删除源
 
 ```shell
-Blogrolling.Data.RSS remove <link or name>
+dotnet Blogrolling.Data.RSS.dll -- remove <link or name>
 ```
 
 ### 更新源
 
 ```shell
-Blogrolling.Data.RSS refresh <link or name> [--force]
+dotnet Blogrolling.Data.RSS.dll -- refresh <link or name> [--force]
 ```
 
 ## 配置文件
 
-配置文件目录位于 `UserHome/.config/blogrolling` 。  
-其中每一个选项使用单独的文件保存，文件内容即选项值。  
+配置文件位于 `%UserHome%/.config/blogrolling.cfg` 。
+是一个键值对形式的文件。
 
-| 选项名              | 是否必须 | 默认值 | 说明                |
-|------------------|------|-----|-------------------|
-| ConnectionString | 是    | N/A | 数据库的连接字符串。        |
-| Debug            | 否    | N/A | 存在此文件即是 Debug 模式。 |
-
-[//]: # (| Timeout          | 否    | 5   | 访问网络地址时的超时时间（秒）。  |)
+| 键名                     | 是否必须 | 默认值   | 说明               |
+|------------------------|------|-------|------------------|
+| BLOGROLLING_MYSQL_HOST | 是    | N/A   | 数据库的地址。          |
+| BLOGROLLING_MYSQL_PORT | 是    | N/A   | 数据库的端口号。         |
+| BLOGROLLING_MYSQL_USER | 是    | N/A   | 数据库的用户名。         |
+| BLOGROLLING_MYSQL_PASS | 是    | N/A   | 数据库的密码。          |
+| BLOGROLLING_MYSQL_NAME | 是    | N/A   | 数据库的名称。          |
+| BLOGROLLING_DEBUG      | 否    | false | 开启 Debug 模式。     |
+| BLOGROLLING_TIMEOUT    | 否    | 5     | 访问网络地址时的超时时间（秒）。 |
 
 ## 构建
 

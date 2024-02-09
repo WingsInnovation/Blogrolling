@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
+using Blogrolling;
 using Blogrolling.Database;
-using Blogrolling.Utilities;
 using Microsoft.EntityFrameworkCore;
 using NLog.Web;
 
@@ -12,7 +12,7 @@ builder.Logging.ClearProviders()
 
 builder.Services.AddDbContext<BlogrollingContext>(context =>
 {
-    context.UseMySql(ConfigHelper.GetConnectionString(), ServerVersion.AutoDetect(ConfigHelper.GetConnectionString()))
+    context.UseMySql(Blogrolling.Blogrolling.GetInstance().Config.GetConnectionString(), ServerVersion.AutoDetect(Blogrolling.Blogrolling.GetInstance().Config.GetConnectionString()))
         .UseLazyLoadingProxies();
 });
 

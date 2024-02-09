@@ -1,5 +1,4 @@
 ﻿using Blogrolling.Database;
-using Blogrolling.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
@@ -9,7 +8,7 @@ public class MigrationContextFactory : IDesignTimeDbContextFactory<BlogrollingCo
 {
     public BlogrollingContext CreateDbContext(string[] args)
     {
-        var connectionString = args.Length != 1 ? ConfigHelper.GetConnectionString() : args[0];
+        var connectionString = args.Length != 1 ? Blogrolling.GetInstance().Config.GetConnectionString() : args[0];
 
         if (string.IsNullOrWhiteSpace(connectionString))
         {

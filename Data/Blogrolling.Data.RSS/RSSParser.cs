@@ -1,5 +1,4 @@
-﻿using Blogrolling.Utilities;
-using CodeHollow.FeedReader;
+﻿using CodeHollow.FeedReader;
 
 namespace Blogrolling.Data.RSS;
 

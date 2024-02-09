@@ -1,7 +1,6 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
 using Blogrolling.Database;
-using Blogrolling.Utilities;
 using CodeHollow.FeedReader;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -18,7 +17,7 @@ public class Helper
 
     public static BlogrollingContext GetContext()
     {
-        var connectionString = ConfigHelper.GetConnectionString();
+        var connectionString = Blogrolling.GetInstance().Config.GetConnectionString();
         if (string.IsNullOrWhiteSpace(connectionString))
         {
             throw new Exception("Please place the ConnectionString into '%USER_PROFILE%/.config/blogrolling/connectionString'.");
@@ -28,7 +27,7 @@ public class Helper
         optionsBuilder.UseLazyLoadingProxies()
             .UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
 
-        if (ConfigHelper.IsDebug())
+        if (Blogrolling.GetInstance().Config.IsDebug())
         {
             Console.WriteLine("Debug mode enabled!");
             optionsBuilder.UseLoggerFactory(LoggerFactory.Create(builder => builder.AddConsole()));
