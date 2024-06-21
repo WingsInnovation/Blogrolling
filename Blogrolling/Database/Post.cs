@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Blogrolling.Database;
 
-[Index(nameof(Guid), IsUnique = true)]
 [Comment("博客文章")]
 public class Post
 {
@@ -17,9 +16,9 @@ public class Post
     
     [Required]
     [Comment("文章标题")]
-    public string Title { get; set; }
+    public required string Title { get; set; }
     
-    [Comment("文章介绍")]
+    [Comment("文章简介")]
     public string? Description { get; set; }
     
     [Comment("文章作者")]
@@ -27,12 +26,7 @@ public class Post
     
     [Required]
     [Comment("链接")]
-    public string Link { get; set; }
-    
-    [JsonIgnore]
-    [Required]
-    [Comment("文章GUID的Hash")]
-    public string Guid { get; set; }
+    public required string Link { get; set; }
     
     [Required]
     [Comment("发布时间")]
@@ -51,6 +45,7 @@ public class Post
     [JsonIgnore]
     public virtual Blog Blog { get; set; }
     
+    [JsonIgnore]
     public virtual IEnumerable<Tag> Tags { get; set; }
 
     #endregion

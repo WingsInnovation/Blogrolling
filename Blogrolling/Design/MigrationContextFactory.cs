@@ -1,4 +1,5 @@
-﻿using Blogrolling.Database;
+﻿using Blogrolling.Config;
+using Blogrolling.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
@@ -8,11 +9,12 @@ public class MigrationContextFactory : IDesignTimeDbContextFactory<BlogrollingCo
 {
     public BlogrollingContext CreateDbContext(string[] args)
     {
-        var connectionString = args.Length != 1 ? Blogrolling.GetInstance().Config.GetConnectionString() : args[0];
+        var config = new ConfigManager();
+        var connectionString = args.Length != 1 ? config.GetConnectionString() : args[0];
 
         if (string.IsNullOrWhiteSpace(connectionString))
         {
-            throw new Exception("Please provide a MySQL connection string. Eg: dotnet ef database update -- \"<Connection string.>\". ");
+            throw new Exception("Provide a MySQL connection string. Eg: dotnet ef database update -- \"<Connection string.>\". ");
         }
         
         var optionsBuilder = new DbContextOptionsBuilder<BlogrollingContext>();

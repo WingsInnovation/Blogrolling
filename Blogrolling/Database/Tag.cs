@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Blogrolling.Database;
 
-[Index(nameof(Guid), nameof(BlogId), IsUnique = true)]
+[Index(nameof(Name), nameof(BlogId), IsUnique = true)]
 [Comment("标签")]
 public class Tag
 {
@@ -16,13 +16,9 @@ public class Tag
     public int Id { get; set; }
     
     [Required]
+    [MaxLength(512)]
     [Comment("标签名")]
-    public string Name { get; set; }
-    
-    [JsonIgnore]
-    [Required]
-    [Comment("标签Guid的Hash")]
-    public string Guid { get; set; }
+    public required string Name { get; set; }
     
     [Comment("标签链接")]
     public string? Link { get; set; }

@@ -5,8 +5,8 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>
-        <Company>WingsInnovation</Company>
         <Authors>qyl27</Authors>
+        <Company>WingsInnovation</Company>
     </PropertyGroup>
 
     <ItemGroup>
