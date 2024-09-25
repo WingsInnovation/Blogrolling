@@ -1,7 +1,8 @@
 using System.Text.Json.Serialization;
-using Blogrolling;
 using Blogrolling.Config;
 using Blogrolling.Database;
+using Blogrolling.Service;
+using Blogrolling.Service.Impl;
 using Microsoft.EntityFrameworkCore;
 using NLog.Web;
 
@@ -18,7 +19,7 @@ builder.Services.AddDbContext<BlogrollingContext>(context =>
     context.UseMySql(config.GetConnectionString(), ServerVersion.AutoDetect(config.GetConnectionString()))
         .UseLazyLoadingProxies();
 });
-builder.Services.AddSingleton<Rolling>();
+builder.Services.AddSingleton<IPollingService, PollingService>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>

@@ -1,6 +1,9 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
+using Blogrolling.Config;
 using Blogrolling.Database;
+using Blogrolling.Service;
+using Blogrolling.Service.Impl;
 using CodeHollow.FeedReader;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -9,31 +12,41 @@ namespace Blogrolling.Updater;
 
 public class Helper
 {
+    private static PollingService? Service { set; get; }
+    
     public static bool IsUrl(string str)
     {
         return Uri.TryCreate(str, UriKind.Absolute, out var result)
                && (result.Scheme == Uri.UriSchemeHttp || result.Scheme == Uri.UriSchemeHttps);
     }
 
-    public static BlogrollingContext GetContext()
+    public static PollingService GetContext()
     {
-        var connectionString = Rolling.GetInstance().Config.GetConnectionString();
-        if (string.IsNullOrWhiteSpace(connectionString))
+        
+        if (Service == null)
         {
-            throw new Exception("Please place the ConnectionString into '%USER_PROFILE%/.config/blogrolling/connectionString'.");
-        }
+            var config = new ConfigManager();
+            var connectionString = config.GetConnectionString();
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                throw new Exception("Please place the ConnectionString into '%USER_PROFILE%/.config/blogrolling.cfg'.");
+            }
     
-        var optionsBuilder = new DbContextOptionsBuilder<BlogrollingContext>();
-        optionsBuilder.UseLazyLoadingProxies()
-            .UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+            var optionsBuilder = new DbContextOptionsBuilder<BlogrollingContext>();
+            optionsBuilder.UseLazyLoadingProxies()
+                .UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
 
-        if (Rolling.GetInstance().Config.IsDebug())
-        {
-            Console.WriteLine("Debug mode enabled!");
-            optionsBuilder.UseLoggerFactory(LoggerFactory.Create(builder => builder.AddConsole()));
+            if (config.IsDebug())
+            {
+                Console.WriteLine("Debug mode enabled!");
+                optionsBuilder.UseLoggerFactory(LoggerFactory.Create(builder => builder.AddConsole()));
+            }
+        
+            var context = new BlogrollingContext(optionsBuilder.Options);
+            return Service ??= new PollingService(context);
         }
         
-        return new BlogrollingContext(optionsBuilder.Options);
+        return Service;
     }
 
     public static bool IsRSS(FeedType type)

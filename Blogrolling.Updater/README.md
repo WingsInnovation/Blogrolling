@@ -1,4 +1,4 @@
-﻿# Blogrolling.Data.RSS
+﻿# Blogrolling.Updater
 
 Blogrolling 的 RSS 内容获取器。
 
@@ -7,19 +7,19 @@ Blogrolling 的 RSS 内容获取器。
 ### 添加源
 
 ```shell
-dotnet Blogrolling.Data.RSS.dll -- add <link>
+dotnet Blogrolling.Updater.dll -- add <link>
 ```
 
 ### 删除源
 
 ```shell
-dotnet Blogrolling.Data.RSS.dll -- remove <link or name>
+dotnet Blogrolling.Updater.dll -- remove <link or name>
 ```
 
 ### 更新源
 
 ```shell
-dotnet Blogrolling.Data.RSS.dll -- refresh [link or name] [--force]
+dotnet Blogrolling.Updater.dll -- refresh [link or name] [--force]
 ```
 
 ## 配置文件
