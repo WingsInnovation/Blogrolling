@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <NoWarn>1701;1702;1591</NoWarn>
+        <DocumentationFile>Blogrolling.App.Web.Core.xml</DocumentationFile>
+    </PropertyGroup>
+
+
+    <ItemGroup>
+        <None Remove="Blogrolling.App.Web.Core.xml"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Blogrolling.App.Application\Blogrolling.App.Application.csproj"/>
+        <ProjectReference Include="..\Blogrolling.App.Database.Migrations\Blogrolling.App.Database.Migrations.csproj"/>
+    </ItemGroup>
+
+</Project>

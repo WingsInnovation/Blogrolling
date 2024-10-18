@@ -1,0 +1,13 @@
+﻿using Furion;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Blogrolling.App.EntityFramework.Core;
+
+public class Startup : AppStartup
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
+        services.AddDatabaseAccessor(options => { options.AddDbPool<DefaultDbContext>(); },
+            "Blogrolling.App.Database.Migrations");
+    }
+}
