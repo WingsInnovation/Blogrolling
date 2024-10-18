@@ -23,18 +23,12 @@ public class ConfigManager
     
     public string GetConnectionString()
     {
-        var host = Env["MYSQL_HOST"];
-        var port = Env["MYSQL_PORT"];
-        var user = Env["MYSQL_USER"];
-        var pass = Env["MYSQL_PASS"];
-        var name = Env["MYSQL_NAME"];
-
-        return $"Server={host};Port={port};Uid={user};Pwd={pass};Database={name};";
+        return Env["BLOGROLLING_DATABASE_CONNECTION_STRING"];
     }
 
     public bool IsDebug()
     {
-        return "true".Equals(Env["DEBUG"]);
+        return "true".Equals(Env["BLOGROLLING_DEBUG"]);
     }
     
     public int GetTimeout()

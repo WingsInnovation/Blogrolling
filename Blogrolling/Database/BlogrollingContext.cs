@@ -14,7 +14,13 @@ public class BlogrollingContext(DbContextOptions<BlogrollingContext> options) : 
     public DbSet<Post> Posts { get; set; }
     
     public DbSet<Tag> Tags { get; set; }
-    
+
+    protected override async void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        await Database.EnsureCreatedAsync();
+        base.OnConfiguring(optionsBuilder);
+    }
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);

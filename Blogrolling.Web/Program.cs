@@ -3,6 +3,7 @@ using Blogrolling.Config;
 using Blogrolling.Database;
 using Blogrolling.Service;
 using Blogrolling.Service.Impl;
+using Coravel;
 using Microsoft.EntityFrameworkCore;
 using NLog.Web;
 
@@ -20,6 +21,8 @@ builder.Services.AddDbContext<BlogrollingContext>(context =>
         .UseLazyLoadingProxies();
 });
 builder.Services.AddSingleton<IPollingService, PollingService>();
+
+builder.Services.AddScheduler();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -40,5 +43,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseRouting();
 app.MapControllers();
+
+var db = app.Services.GetService<BlogrollingContext>();
 
 app.Run();
